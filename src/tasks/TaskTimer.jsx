@@ -2,110 +2,39 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../utils/supabaseClient";
 import { Play, Pause, Square, Clock } from "lucide-react";
 
+const getDurationSeconds = (task) => (task.duration_minutes || 25) * 60;
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
+};
+
 export default function TaskTimer({ task, onStatusChange }) {
-  const [timeLeft, setTimeLeft] = useState(0); // segundos restantes
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const elapsedBeforePauseRef = useRef(0); // segundos já decorridos antes da pausa
+  const [nowTick, setNowTick] = useState(0);
+  const [savingAction, setSavingAction] = useState(null);
+  const autoCompletedRef = useRef(false);
 
-  // Sincroniza o estado inicial com a tarefa
-  useEffect(() => {
-    if (task.status === "em_andamento") {
-      if (task.start_time) {
-        const start = new Date(task.start_time).getTime();
-        const now = Date.now();
-        const elapsed = Math.floor((now - start) / 1000);
-        const remaining = Math.max(
-          0,
-          (task.duration_minutes || 25) * 60 - elapsed,
-        );
-        setTimeLeft(remaining);
-        elapsedBeforePauseRef.current = elapsed;
-        startTimeRef.current = start;
-        setIsRunning(true);
-        setIsPaused(false);
-      }
-    } else if (task.status === "pausada") {
-      // Se pausada, precisamos do elapsedBeforePause armazenado no banco (não temos campo ainda, então tratamos como 0)
-      setTimeLeft(
-        Math.max(
-          0,
-          (task.duration_minutes || 25) * 60 - (task.elapsed_seconds || 0),
-        ),
-      );
-      setIsRunning(false);
-      setIsPaused(true);
-    } else {
-      setTimeLeft((task.duration_minutes || 25) * 60);
-      setIsRunning(false);
-      setIsPaused(false);
-      elapsedBeforePauseRef.current = 0;
-    }
-  }, [task]);
+  const durationSeconds = getDurationSeconds(task);
+  const savedElapsed = task.elapsed_seconds || 0;
+  const isRunning = task.status === "em_andamento";
+  const isPaused = task.status === "pausada";
+  const startTime = task.start_time ? new Date(task.start_time).getTime() : null;
+  const effectiveNow = nowTick || startTime || 0;
+  const elapsedSinceStart =
+    isRunning && startTime
+      ? Math.max(0, Math.floor((effectiveNow - startTime) / 1000))
+      : 0;
+  const totalElapsed = isRunning ? savedElapsed + elapsedSinceStart : savedElapsed;
+  const timeLeft = Math.max(0, durationSeconds - totalElapsed);
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, 100 - (timeLeft / durationSeconds) * 100),
+  );
 
-  // Loop do cronômetro
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            // Tempo esgotado: concluir automaticamente
-            handleComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(intervalRef.current);
-    }
-
-    return () => clearInterval(intervalRef.current);
-  }, [isRunning, isPaused]);
-
-  const handleStart = async () => {
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("tasks")
-      .update({
-        status: "em_andamento",
-        start_time: now,
-        elapsed_seconds: elapsedBeforePauseRef.current,
-      })
-      .eq("id", task.id);
-
-    if (!error) {
-      setIsRunning(true);
-      setIsPaused(false);
-      startTimeRef.current = new Date(now).getTime();
-      onStatusChange?.();
-    }
-  };
-
-  const handlePause = async () => {
-    const elapsed =
-      elapsedBeforePauseRef.current +
-      Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const { error } = await supabase
-      .from("tasks")
-      .update({
-        status: "pausada",
-        elapsed_seconds: elapsed,
-      })
-      .eq("id", task.id);
-
-    if (!error) {
-      setIsRunning(false);
-      setIsPaused(true);
-      elapsedBeforePauseRef.current = elapsed;
-      onStatusChange?.();
-    }
-  };
-
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("tasks")
@@ -116,14 +45,71 @@ export default function TaskTimer({ task, onStatusChange }) {
       .eq("id", task.id);
 
     if (!error) {
-      setIsRunning(false);
-      setIsPaused(false);
+      onStatusChange?.();
+    }
+  }, [task.id, onStatusChange]);
+
+  useEffect(() => {
+    autoCompletedRef.current = false;
+  }, [task.id, task.status]);
+
+  useEffect(() => {
+    if (!isRunning) return undefined;
+
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!isRunning || timeLeft > 0 || autoCompletedRef.current) return;
+
+    autoCompletedRef.current = true;
+    handleComplete();
+  }, [isRunning, timeLeft, handleComplete]);
+
+  const handleStart = async () => {
+    setSavingAction("start");
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        status: "em_andamento",
+        start_time: now,
+        elapsed_seconds: savedElapsed,
+      })
+      .eq("id", task.id);
+
+    setSavingAction(null);
+
+    if (!error) {
+      setNowTick(Date.now());
+      onStatusChange?.();
+    }
+  };
+
+  const handlePause = async () => {
+    setSavingAction("pause");
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        status: "pausada",
+        elapsed_seconds: Math.min(durationSeconds, totalElapsed),
+      })
+      .eq("id", task.id);
+
+    setSavingAction(null);
+
+    if (!error) {
       onStatusChange?.();
     }
   };
 
   const handleStop = async () => {
-    clearInterval(intervalRef.current);
+    setSavingAction("stop");
+
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -133,34 +119,41 @@ export default function TaskTimer({ task, onStatusChange }) {
       })
       .eq("id", task.id);
 
+    setSavingAction(null);
+
     if (!error) {
-      setIsRunning(false);
-      setIsPaused(false);
-      setTimeLeft((task.duration_minutes || 25) * 60);
-      elapsedBeforePauseRef.current = 0;
+      setNowTick(Date.now());
       onStatusChange?.();
     }
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   return (
-    <div className="flex items-center gap-3">
-      <Clock className="w-4 h-4 text-gray-400" />
-      <span
-        className={`font-mono text-lg ${isRunning ? "text-blue-400" : "text-gray-300"}`}
-      >
-        {formatTime(timeLeft)}
-      </span>
+    <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-2.5 py-2">
+      <div className="flex min-w-[92px] items-center gap-2">
+        <Clock className="h-4 w-4 text-gray-500" />
+        <span
+          className={`font-mono text-base font-semibold ${
+            isRunning ? "text-blue-300" : "text-gray-300"
+          }`}
+        >
+          {formatTime(timeLeft)}
+        </span>
+      </div>
+
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-800 sm:w-20">
+        <div
+          className="h-full rounded-full bg-blue-500 transition-all"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
       <div className="flex gap-1">
         {!isRunning && !isPaused && (
           <button
+            type="button"
             onClick={handleStart}
-            className="p-1.5 rounded hover:bg-green-600 text-green-400"
+            disabled={savingAction !== null}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-green-300 transition hover:bg-green-600/15 hover:text-green-200 disabled:opacity-50"
             title="Iniciar"
           >
             <Play size={16} />
@@ -168,8 +161,10 @@ export default function TaskTimer({ task, onStatusChange }) {
         )}
         {isRunning && (
           <button
+            type="button"
             onClick={handlePause}
-            className="p-1.5 rounded hover:bg-yellow-600 text-yellow-400"
+            disabled={savingAction !== null}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-yellow-300 transition hover:bg-yellow-600/15 hover:text-yellow-200 disabled:opacity-50"
             title="Pausar"
           >
             <Pause size={16} />
@@ -177,8 +172,10 @@ export default function TaskTimer({ task, onStatusChange }) {
         )}
         {isPaused && (
           <button
+            type="button"
             onClick={handleStart}
-            className="p-1.5 rounded hover:bg-green-600 text-green-400"
+            disabled={savingAction !== null}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-green-300 transition hover:bg-green-600/15 hover:text-green-200 disabled:opacity-50"
             title="Retomar"
           >
             <Play size={16} />
@@ -186,8 +183,10 @@ export default function TaskTimer({ task, onStatusChange }) {
         )}
         {(isRunning || isPaused) && (
           <button
+            type="button"
             onClick={handleStop}
-            className="p-1.5 rounded hover:bg-red-600 text-red-400"
+            disabled={savingAction !== null}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-300 transition hover:bg-red-600/15 hover:text-red-200 disabled:opacity-50"
             title="Parar"
           >
             <Square size={16} />
