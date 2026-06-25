@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import toast from "react-hot-toast";
+import { supabase } from '../utils/supabaseClient'
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -12,17 +13,48 @@ export default function Register() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await register(email, password, fullName);
-      navigate("/diagnosis"); // redireciona para o questionário
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
+  e.preventDefault()
+  setLoading(true)
+  
+  try {
+    // 1. Criar usuário no Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    })
+    
+    if (authError) throw authError
+    
+    // 2. Criar perfil manualmente (NOVA PARTE)
+    if (authData?.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          full_name: fullName,
+          diagnosis_level: 'iniciante',
+          diagnosis_completed: false,
+        })
+      
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError)
+        toast.error('Erro ao criar perfil. Tente novamente.')
+        setLoading(false)
+        return
+      }
     }
-  };
+    
+    toast.success('Conta criada com sucesso!')
+    navigate('/diagnosis')
+  } catch (error) {
+    toast.error(error.message)
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">

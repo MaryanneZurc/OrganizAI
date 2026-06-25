@@ -1,16 +1,9 @@
-
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import Login from "./auth/Login";
-import Register from "./auth/Register";
-// import ForgotPassword from './auth/ForgotPassword'; // ⚠️ Comentado - arquivo ainda não existe
-import RequireAuth from "./auth/RequireAuth";
-import DashboardLayout from "./dashboard/DashboardLayout";
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Login from './auth/Login'
 import Register from './auth/Register'
 import ForgotPassword from './auth/ForgotPassword'
+import ResetPassword from './auth/ResetPassword'
 import RequireAuth from './auth/RequireAuth'
 import QuestionnaireWizard from './diagnosis/QuestionnaireWizard'
 import DashboardLayout from './dashboard/DashboardLayout'
@@ -21,7 +14,6 @@ import AIAssistantChat from './ai/AIAssistantChat'
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
       <Toaster
         position="top-right"
         toastOptions={{
@@ -36,14 +28,10 @@ function App() {
         {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}{" "}
-        {/* Comentado */}
-        {/* Rotas protegidas */}
-        <Route
-          path="/"
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Rota de diagnóstico (protegida) */}
+        {/* Diagnóstico (protegido) */}
         <Route
           path="/diagnosis"
           element={
@@ -61,9 +49,6 @@ function App() {
               <DashboardLayout />
             </RequireAuth>
           }
-        />
-        {/* Redirecionamento padrão */}
-        <Route path="*" element={<Login />} />
         >
           <Route index element={<Navigate to="tasks" replace />} />
           <Route path="tasks" element={<TaskList />} />
@@ -71,7 +56,7 @@ function App() {
           <Route path="assistant" element={<AIAssistantChat />} />
         </Route>
 
-        {/* Redirecionamento padrão */}
+        {/* Fallback */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
