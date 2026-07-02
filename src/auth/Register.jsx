@@ -1,131 +1,94 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import toast from "react-hot-toast";
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../utils/supabaseClient'
+import toast from 'react-hot-toast'
 
 export default function Register() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
-  const navigate = useNavigate();
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  setLoading(true)
-  
-  try {
-    // 1. Criar usuário no Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    e.preventDefault()
+    setLoading(true)
+    
+    console.log('📝 Tentando cadastrar:', { email, fullName })
+    
+    // Etapa 1: Criar usuário no Auth
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: fullName },
-      },
+      options: { data: { full_name: fullName } },
     })
     
-    if (authError) throw authError
+    // MOSTRAR TUDO no console
+    console.log('📦 Resposta completa:', { data, error })
     
-    // 2. Criar perfil manualmente (NOVA PARTE)
-    if (authData?.user) {
+    if (error) {
+      console.error('❌ ERRO COMPLETO:', JSON.stringify(error, null, 2))
+      console.error('❌ Mensagem:', error.message)
+      console.error('❌ Status:', error.status)
+      console.error('❌ Nome:', error.name)
+      toast.error(error.message || 'Erro ao criar conta')
+      setLoading(false)
+      return
+    }
+    
+    console.log('✅ Usuário criado:', data)
+    
+    // Etapa 2: Criar perfil
+    if (data?.user) {
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: authData.user.id,
+        .insert({
+          id: data.user.id,
           full_name: fullName,
           diagnosis_level: 'iniciante',
           diagnosis_completed: false,
         })
       
       if (profileError) {
-        console.error('Erro ao criar perfil:', profileError)
-        toast.error('Erro ao criar perfil. Tente novamente.')
-        setLoading(false)
-        return
+        console.error('❌ Erro perfil:', profileError)
+      } else {
+        console.log('✅ Perfil criado')
       }
     }
     
     toast.success('Conta criada com sucesso!')
     navigate('/diagnosis')
-  } catch (error) {
-    toast.error(error.message)
-  } finally {
     setLoading(false)
   }
-}
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Criar Conta</h1>
-          <p className="text-gray-400 mt-2">
-            Comece sua jornada de produtividade
-          </p>
-        </div>
-
+        <h1 className="text-4xl font-bold text-white text-center mb-8">Criar Conta</h1>
+        
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Nome completo
-            </label>
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition"
-              placeholder="Seu nome"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              E‑mail
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition"
-              placeholder="seu@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Senha
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition"
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Criando conta..." : "Criar conta"}
+          <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)}
+            placeholder="Nome completo"
+            className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none" />
+          
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none" />
+          
+          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+            className="w-full px-4 py-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none" />
+          
+          <button type="submit" disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition disabled:opacity-50">
+            {loading ? 'Criando...' : 'Criar conta'}
           </button>
         </form>
-
+        
         <p className="text-gray-400 text-sm text-center mt-6">
-          Já tem conta?{" "}
-          <Link to="/login" className="text-blue-400 hover:underline">
-            Fazer login
-          </Link>
+          Já tem conta? <Link to="/login" className="text-blue-400 hover:underline">Fazer login</Link>
         </p>
       </div>
     </div>
-  );
+  )
 }
