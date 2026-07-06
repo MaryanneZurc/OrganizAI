@@ -4,7 +4,8 @@ import Login from "./auth/Login";
 import Register from "./auth/Register";
 import RequireAuth from "./auth/RequireAuth";
 import QuestionnaireWizard from "./diagnosis/QuestionnaireWizard";
-import OnboardingWizard from "./onboarding/OnboardingWizard"; // 👈 NOVA IMPORT
+import OnboardingWizard from "./onboarding/OnboardingWizard";
+import Techniques from "./techniques/Techniques"; // Import da aba Técnicas
 import DashboardLayout from "./dashboard/DashboardLayout";
 import TaskList from "./tasks/TaskList";
 import ProgressCharts from "./dashboard/ProgressCharts";
@@ -37,8 +38,6 @@ function App() {
             </RequireAuth>
           }
         />
-
-        {/* 👇 NOVA ROTA DE ONBOARDING (protegida) */}
         <Route
           path="/onboarding"
           element={
@@ -47,7 +46,15 @@ function App() {
             </RequireAuth>
           }
         />
-
+        {/* NOVA ROTA: Técnicas */}
+        <Route
+          path="/techniques"
+          element={
+            <RequireAuth>
+              <Techniques />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/dashboard"
           element={
