@@ -181,14 +181,15 @@ export default function QuestionnaireWizard() {
     const level = calculateLevel();
     const goals = generateGoals(level, responses);
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      full_name: responses.full_name,
-      age: responses.age,
-      occupation: responses.occupation,
-      diagnosis_level: level,
-      goals: goals,
-      diagnosis_completed: true,
+    const { error } = await supabase.from('profiles').upsert({
+  id: user.id,
+  full_name: responses.full_name,
+  age: responses.age,
+  occupation: responses.occupation,
+  diagnosis_level: level,
+  goals: goals,
+  diagnosis_completed: true,
+
     });
 
     if (error) {
