@@ -3,7 +3,14 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../utils/supabaseClient";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { LogOut, User, CheckSquare, TrendingUp, Bot } from "lucide-react";
+import { 
+  LogOut, 
+  User, 
+  CheckSquare, 
+  TrendingUp, 
+  Bot,
+  BookOpen // 👈 Ícone para Técnicas
+} from "lucide-react";
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -30,6 +37,7 @@ export default function DashboardLayout() {
     { path: "/dashboard/tasks", label: "Tarefas", icon: CheckSquare },
     { path: "/dashboard/progress", label: "Progresso", icon: TrendingUp },
     { path: "/dashboard/assistant", label: "IA Assistente", icon: Bot },
+    { path: "/dashboard/techniques", label: "Técnicas", icon: BookOpen }, // 👈 NOVA ABA
   ];
 
   return (

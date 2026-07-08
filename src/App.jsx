@@ -5,7 +5,7 @@ import Register from "./auth/Register";
 import RequireAuth from "./auth/RequireAuth";
 import QuestionnaireWizard from "./diagnosis/QuestionnaireWizard";
 import OnboardingWizard from "./onboarding/OnboardingWizard";
-import Techniques from "./techniques/Techniques"; // Import da aba Técnicas
+import Techniques from "./techniques/Techniques"; // 👈 Import da aba Técnicas
 import DashboardLayout from "./dashboard/DashboardLayout";
 import TaskList from "./tasks/TaskList";
 import ProgressCharts from "./dashboard/ProgressCharts";
@@ -29,7 +29,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Rotas protegidas */}
+        {/* Rotas protegidas (independentes) */}
         <Route
           path="/diagnosis"
           element={
@@ -49,6 +49,7 @@ function App() {
           }
         />
 
+        {/* Rotas protegidas com layout do Dashboard */}
         <Route
           path="/dashboard"
           element={
@@ -61,6 +62,8 @@ function App() {
           <Route path="tasks" element={<TaskList />} />
           <Route path="progress" element={<ProgressCharts />} />
           <Route path="assistant" element={<AIAssistantChat />} />
+          {/* 👇 NOVA ROTA PARA TÉCNICAS (filha do dashboard) */}
+          <Route path="techniques" element={<Techniques />} />
         </Route>
 
         {/* Fallback */}
