@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Login from './auth/Login'
@@ -41,7 +42,16 @@ function App() {
           }
         />
 
-        {/* Dashboard com abas (protegido) */}
+        {/* 👇 NOVA ROTA DE ONBOARDING (protegida) */}
+        <Route
+          path="/onboarding"
+          element={
+            <RequireAuth>
+              <OnboardingWizard />
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -64,4 +74,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
