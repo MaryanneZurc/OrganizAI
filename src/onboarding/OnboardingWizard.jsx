@@ -9,7 +9,8 @@ import {
   FaRobot,
   FaArrowRight,
   FaCheck 
-} from 'react-icons/fa';
+} 
+from 'react-icons/fa';
 
 const OnboardingWizard = () => {
   const { user } = useAuth();

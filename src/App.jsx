@@ -11,6 +11,12 @@ import DashboardLayout from './dashboard/DashboardLayout'
 import TaskList from './tasks/TaskList'
 import ProgressCharts from './dashboard/ProgressCharts'
 import AIAssistantChat from './ai/AIAssistantChat'
+import OnboardingWizard from './onboarding/OnboardingWizard'
+// import Techniques from './pages/Techniques'
+// import Onboarding from './pages/Onboarding'
+// import Accessibility from './pages/Accessibility'
+
+// Dentro de <Routes>:
 
 function App() {
   return (
@@ -51,6 +57,7 @@ function App() {
             </RequireAuth>
           }
         />
+      
 
         <Route
           path="/dashboard"
@@ -64,6 +71,10 @@ function App() {
           <Route path="tasks" element={<TaskList />} />
           <Route path="progress" element={<ProgressCharts />} />
           <Route path="assistant" element={<AIAssistantChat />} />
+          {/* <Route path="techniques" element={<Techniques />} /> */}
+          {/* <Route path="onboarding" element={<Onboarding />} /> */}
+          {/* <Route path="accessibility" element={<Accessibility />} /> */}
+        
         </Route>
 
         {/* Fallback */}
