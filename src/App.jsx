@@ -1,16 +1,16 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import Login from "./auth/Login";
+import Register from "./auth/Register";
+import RequireAuth from "./auth/RequireAuth";
+import QuestionnaireWizard from "./diagnosis/QuestionnaireWizard";
+import OnboardingWizard from "./onboarding/OnboardingWizard";
+import Techniques from "./techniques/Techniques"; // 👈 Import da aba Técnicas
+import DashboardLayout from "./dashboard/DashboardLayout";
+import TaskList from "./tasks/TaskList";
+import ProgressCharts from "./dashboard/ProgressCharts";
+import AIAssistantChat from "./ai/AIAssistantChat";
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import Login from './auth/Login'
-import Register from './auth/Register'
-import ForgotPassword from './auth/ForgotPassword'
-import ResetPassword from './auth/ResetPassword'
-import RequireAuth from './auth/RequireAuth'
-import QuestionnaireWizard from './diagnosis/QuestionnaireWizard'
-import DashboardLayout from './dashboard/DashboardLayout'
-import TaskList from './tasks/TaskList'
-import ProgressCharts from './dashboard/ProgressCharts'
-import AIAssistantChat from './ai/AIAssistantChat'
 
 function App() {
   return (
@@ -32,7 +32,6 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Diagnóstico (protegido) */}
         <Route
           path="/diagnosis"
           element={
@@ -64,6 +63,8 @@ function App() {
           <Route path="tasks" element={<TaskList />} />
           <Route path="progress" element={<ProgressCharts />} />
           <Route path="assistant" element={<AIAssistantChat />} />
+          {/* 👇 NOVA ROTA PARA TÉCNICAS (filha do dashboard) */}
+          <Route path="techniques" element={<Techniques />} />
         </Route>
 
         {/* Fallback */}

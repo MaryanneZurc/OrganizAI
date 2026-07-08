@@ -1,3 +1,17 @@
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../utils/supabaseClient";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { 
+  LogOut, 
+  User, 
+  CheckSquare, 
+  TrendingUp, 
+  Bot,
+  BookOpen // 👈 Ícone para Técnicas
+} from "lucide-react";
+
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from '../components/Sidebar';
@@ -26,6 +40,13 @@ export default function DashboardLayout() {
         return <TaskList />;
     }
   };
+
+  const tabs = [
+    { path: "/dashboard/tasks", label: "Tarefas", icon: CheckSquare },
+    { path: "/dashboard/progress", label: "Progresso", icon: TrendingUp },
+    { path: "/dashboard/assistant", label: "IA Assistente", icon: Bot },
+    { path: "/dashboard/techniques", label: "Técnicas", icon: BookOpen }, // 👈 NOVA ABA
+  ];
 
   return (
     <div className="flex min-h-screen bg-gray-900">
