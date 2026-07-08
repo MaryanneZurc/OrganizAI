@@ -11,6 +11,7 @@ import TaskList from "./tasks/TaskList";
 import ProgressCharts from "./dashboard/ProgressCharts";
 import AIAssistantChat from "./ai/AIAssistantChat";
 
+
 function App() {
   return (
     <BrowserRouter>
@@ -18,9 +19,9 @@ function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: "#1f2937",
-            color: "#f3f4f6",
-            border: "1px solid #374151",
+            background: '#1f2937',
+            color: '#f3f4f6',
+            border: '1px solid #374151',
           },
         }}
       />
@@ -28,8 +29,9 @@ function App() {
         {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Rotas protegidas (independentes) */}
         <Route
           path="/diagnosis"
           element={
@@ -49,7 +51,6 @@ function App() {
           }
         />
 
-        {/* Rotas protegidas com layout do Dashboard */}
         <Route
           path="/dashboard"
           element={
@@ -67,10 +68,11 @@ function App() {
         </Route>
 
         {/* Fallback */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
 
 export default App;

@@ -16,6 +16,7 @@ const OnboardingWizard = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
 
+  // Dados dos passos do onboarding
   const steps = [
     {
       icon: <FaRocket className="text-6xl text-blue-500" />,
@@ -43,6 +44,7 @@ const OnboardingWizard = () => {
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
+      // Finalizou o onboarding → redirecionar para o dashboard
       navigate('/dashboard');
     }
   };
@@ -56,6 +58,7 @@ const OnboardingWizard = () => {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12">
+        {/* Indicador de progresso (bolinhas) */}
         <div className="flex justify-center gap-2 mb-8">
           {steps.map((_, index) => (
             <div
@@ -67,6 +70,7 @@ const OnboardingWizard = () => {
           ))}
         </div>
 
+        {/* Ícone e conteúdo */}
         <div className="flex flex-col items-center text-center">
           <div className="mb-6 p-4 bg-gray-700 rounded-full">
             {currentStep.icon}
@@ -79,6 +83,7 @@ const OnboardingWizard = () => {
           </p>
         </div>
 
+        {/* Botões de navegação */}
         <div className="flex justify-between items-center mt-10">
           {step > 0 ? (
             <button
