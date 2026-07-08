@@ -1,14 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import Login from "./auth/Login";
-import Register from "./auth/Register";
-import RequireAuth from "./auth/RequireAuth";
-import QuestionnaireWizard from "./diagnosis/QuestionnaireWizard";
-import OnboardingWizard from "./onboarding/OnboardingWizard"; // 👈 NOVA IMPORT
-import DashboardLayout from "./dashboard/DashboardLayout";
-import TaskList from "./tasks/TaskList";
-import ProgressCharts from "./dashboard/ProgressCharts";
-import AIAssistantChat from "./ai/AIAssistantChat";
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import Login from './auth/Login'
+import Register from './auth/Register'
+import ForgotPassword from './auth/ForgotPassword'
+import ResetPassword from './auth/ResetPassword'
+import RequireAuth from './auth/RequireAuth'
+import QuestionnaireWizard from './diagnosis/QuestionnaireWizard'
+import DashboardLayout from './dashboard/DashboardLayout'
+import TaskList from './tasks/TaskList'
+import ProgressCharts from './dashboard/ProgressCharts'
+import AIAssistantChat from './ai/AIAssistantChat'
 
 function App() {
   return (
@@ -17,9 +19,9 @@ function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: "#1f2937",
-            color: "#f3f4f6",
-            border: "1px solid #374151",
+            background: '#1f2937',
+            color: '#f3f4f6',
+            border: '1px solid #374151',
           },
         }}
       />
@@ -27,8 +29,10 @@ function App() {
         {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Rotas protegidas */}
+        {/* Diagnóstico (protegido) */}
         <Route
           path="/diagnosis"
           element={
@@ -63,10 +67,11 @@ function App() {
         </Route>
 
         {/* Fallback */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
 
 export default App;

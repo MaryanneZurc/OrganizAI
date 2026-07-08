@@ -105,6 +105,17 @@ const QuestionnaireWizard = () => {
   const prevStep = () => {
     if (step > 1) setStep(step - 1);
   };
+    const { error } = await supabase.from('profiles').upsert({
+  id: user.id,
+  full_name: responses.full_name,
+  age: responses.age,
+  occupation: responses.occupation,
+  diagnosis_level: level,
+  goals: goals,
+  diagnosis_completed: true,
+
+    });
+
 
   // Calcular nível de diagnóstico baseado na pontuação total (12 perguntas)
   const calculateDiagnosisLevel = () => {
