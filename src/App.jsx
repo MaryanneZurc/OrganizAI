@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> f954ffcda68601a251e31035003dc25041fe506c
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Login from './auth/Login'
@@ -41,7 +45,16 @@ function App() {
           }
         />
 
-        {/* Dashboard com abas (protegido) */}
+        {/* 👇 NOVA ROTA DE ONBOARDING (protegida) */}
+        <Route
+          path="/onboarding"
+          element={
+            <RequireAuth>
+              <OnboardingWizard />
+            </RequireAuth>
+          }
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -64,4 +77,8 @@ function App() {
   )
 }
 
+<<<<<<< HEAD
 export default App
+=======
+export default App;
+>>>>>>> f954ffcda68601a251e31035003dc25041fe506c
