@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Login from './auth/Login'
@@ -11,12 +10,9 @@ import DashboardLayout from './dashboard/DashboardLayout'
 import TaskList from './tasks/TaskList'
 import ProgressCharts from './dashboard/ProgressCharts'
 import AIAssistantChat from './ai/AIAssistantChat'
+import Techniques from './techniques/Techniques'
 import OnboardingWizard from './onboarding/OnboardingWizard'
-// import Techniques from './pages/Techniques'
-// import Onboarding from './pages/Onboarding'
-// import Accessibility from './pages/Accessibility'
-
-// Dentro de <Routes>:
+import Accessibility from './pages/Accessibility'
 
 function App() {
   return (
@@ -48,17 +44,7 @@ function App() {
           }
         />
 
-        {/* 👇 NOVA ROTA DE ONBOARDING (protegida) */}
-        <Route
-          path="/onboarding"
-          element={
-            <RequireAuth>
-              <OnboardingWizard />
-            </RequireAuth>
-          }
-        />
-      
-
+        {/* Dashboard com sidebar + abas (protegido) */}
         <Route
           path="/dashboard"
           element={
@@ -71,10 +57,9 @@ function App() {
           <Route path="tasks" element={<TaskList />} />
           <Route path="progress" element={<ProgressCharts />} />
           <Route path="assistant" element={<AIAssistantChat />} />
-          {/* <Route path="techniques" element={<Techniques />} /> */}
-          {/* <Route path="onboarding" element={<Onboarding />} /> */}
-          {/* <Route path="accessibility" element={<Accessibility />} /> */}
-        
+          <Route path="techniques" element={<Techniques />} />
+          <Route path="onboarding" element={<OnboardingWizard />} />
+          <Route path="accessibility" element={<Accessibility />} />
         </Route>
 
         {/* Fallback */}
@@ -85,4 +70,4 @@ function App() {
   )
 }
 
-export default App;
+export default App
