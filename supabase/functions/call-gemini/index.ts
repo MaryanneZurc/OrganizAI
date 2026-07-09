@@ -1,105 +1,218 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// deno-lint-ignore-file no-explicit-any
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Cabeçalhos CORS para permitir chamadas do frontend
+// Cabeçalhos CORS
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// Interface para mensagens do histórico
+interface HistoryMessage {
+  role: string;
+  content: string;
 }
 
-serve(async (req) => {
-  // Responde a requisições OPTIONS (preflight CORS)
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+serve(async (req: Request) => {
+  // Responde imediatamente a requisições OPTIONS (preflight CORS)
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { message, history, userId } = await req.json()
+    // Extrai e valida o corpo da requisição
+    const body = await req.json();
+    const { message, history, userId } = body;
 
-    // Validação OWASP: limite de tamanho e sanitização básica
-    if (!message || typeof message !== 'string' || message.length > 2000) {
-      return new Response(JSON.stringify({ error: 'Mensagem inválida.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // Validação OWASP: verifica se message é string e limita tamanho
+    if (!message || typeof message !== "string" || message.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: "Mensagem inválida ou muito longa." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!userId || typeof userId !== "string") {
+      return new Response(
+        JSON.stringify({ error: "ID do usuário é obrigatório." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Obtém a chave da API Gemini das variáveis de ambiente
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Chave da API não configurada.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      console.error("GEMINI_API_KEY não configurada");
+      return new Response(
+        JSON.stringify({ error: "Configuração da IA não encontrada." }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Obtém perfil do usuário para personalizar o prompt
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    // Cria cliente Supabase com service_role (bypass RLS)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('diagnosis_level, goals')
-      .eq('id', userId)
-      .single()
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Variáveis do Supabase não configuradas");
+      return new Response(
+        JSON.stringify({ error: "Configuração do servidor incompleta." }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
-    // Monta o prompt com contexto do usuário e histórico recente
-    const systemPrompt = `Você é um assistente de produtividade e finanças do OrganizAI.
-O usuário tem nível de experiência: ${profile?.diagnosis_level || 'iniciante'}.
-Metas atuais: ${profile?.goals?.join(', ') || 'nenhuma definida'}.
-Forneça respostas curtas, práticas e amigáveis, com dicas de técnicas como Pomodoro, Eisenhower, Eat That Frog, etc.
-Quando relevante, sugira ajustes na agenda ou prioridades.`
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const recentHistory = (history || []).slice(-10) // últimas 10 mensagens
-    const contents = [
-      { role: 'user', parts: [{ text: systemPrompt }] },
-      // Adiciona histórico como contexto (a API Gemini aceita múltiplas mensagens)
-      ...recentHistory.map((msg: { role: string; content: string }) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }],
-      })),
-      { role: 'user', parts: [{ text: message }] },
-    ]
+    // Busca perfil do usuário para personalizar o prompt
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("diagnosis_level, goals, full_name")
+      .eq("id", userId)
+      .single();
 
-    // Chamada à API Gemini (modelo gemini-1.5-flash para maior velocidade)
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents }),
+    if (profileError) {
+      console.error("Erro ao buscar perfil:", profileError.message);
+    }
+
+    // Monta o prompt do sistema com contexto do usuário
+    const userName = profile?.full_name || "Usuário";
+    const userLevel = profile?.diagnosis_level || "iniciante";
+    const userGoals = profile?.goals?.length
+      ? profile.goals.join(", ")
+      : "definir metas de produtividade";
+
+    const systemPrompt = `Você é o assistente OrganizAI, especialista em produtividade pessoal e gestão financeira.
+
+CONTEXTO DO USUÁRIO:
+- Nome: ${userName}
+- Nível de experiência: ${userLevel}
+- Metas atuais: ${userGoals}
+
+SUAS FUNÇÕES:
+1. Responder dúvidas sobre produtividade e finanças de forma clara e motivadora
+2. Sugerir técnicas como Pomodoro, Matriz de Eisenhower, Eat That Frog, GTD
+3. Ajudar a priorizar tarefas e organizar a agenda
+4. Oferecer dicas financeiras práticas (orçamento, economia, investimentos)
+5. Adaptar o vocabulário ao nível do usuário (iniciante: mais explicativo; avançado: mais técnico)
+
+REGRAS:
+- Respostas em português do Brasil
+- Seja encorajador e positivo
+- Máximo 3 parágrafos por resposta
+- Se o usuário pedir ajuda com tarefas específicas, peça detalhes sobre prazos e prioridades`;
+
+    // Prepara o array de conteúdos para a API Gemini
+    const contents: any[] = [];
+
+    // Adiciona o prompt do sistema como primeira mensagem
+    contents.push({
+      role: "user",
+      parts: [{ text: systemPrompt }],
+    });
+
+    // Adiciona o histórico recente (últimas 10 mensagens)
+    if (history && Array.isArray(history)) {
+      const recentHistory = history.slice(-10) as HistoryMessage[];
+      for (const msg of recentHistory) {
+        if (msg.role && msg.content) {
+          contents.push({
+            role: msg.role === "assistant" ? "model" : "user",
+            parts: [{ text: msg.content }],
+          });
+        }
       }
-    )
+    }
 
-    const geminiData = await geminiRes.json()
-    const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
-      || 'Desculpe, não consegui processar sua pergunta no momento.'
+    // Adiciona a mensagem atual do usuário
+    contents.push({
+      role: "user",
+      parts: [{ text: message }],
+    });
 
-    // Insere a resposta do assistente no banco (com service_role para bypass RLS)
-    const { error: insertError } = await supabaseAdmin.from('ai_logs').insert({
+    console.log(`Enviando requisição para Gemini com ${contents.length} mensagens`);
+
+    // Chamada à API Gemini
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 500,
+          },
+        }),
+      }
+    );
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      console.error("Erro na API Gemini:", geminiResponse.status, errorData);
+      return new Response(
+        JSON.stringify({
+          error: "Erro ao comunicar com a IA. Tente novamente.",
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const geminiData = await geminiResponse.json();
+    
+    // Extrai a resposta do Gemini
+    const reply =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Desculpe, não consegui processar sua pergunta no momento. Pode reformular?";
+
+    // Salva a resposta no banco de dados
+    const { error: insertError } = await supabaseAdmin.from("ai_logs").insert({
       user_id: userId,
-      role: 'assistant',
+      role: "assistant",
       content: reply,
-    })
+    });
 
     if (insertError) {
-      console.error('Erro ao salvar resposta:', insertError)
-      return new Response(JSON.stringify({ error: 'Erro ao salvar no histórico.' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      console.error("Erro ao salvar resposta no banco:", insertError.message);
+      // Mesmo com erro no banco, retornamos a resposta para o usuário
     }
 
-    // Retorna a resposta também diretamente (o frontend pode usar, mas o realtime já notificará)
-    return new Response(JSON.stringify({ reply }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    // Retorna a resposta
+    return new Response(
+      JSON.stringify({ reply }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (err) {
-    console.error('Erro geral:', err)
-    return new Response(JSON.stringify({ error: 'Erro interno do servidor.' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    console.error("Erro não tratado:", err);
+    return new Response(
+      JSON.stringify({
+        error: "Erro interno do servidor. Por favor, tente novamente.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
-})
+});
